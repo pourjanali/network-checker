@@ -13,6 +13,7 @@ import 'features/edge_ip_checker/edge_ip_checker_controller.dart';
 import 'features/vless_config_modifier/vless_config_modifier_controller.dart';
 import 'features/cdn_config_scan/cdn_config_scan_controller.dart';
 import 'features/sms_encoder/sms_encoder_controller.dart';
+import 'features/netlify_generator/netlify_generator_controller.dart';
 
 class RdnbenetApp extends StatelessWidget {
   const RdnbenetApp({super.key});
@@ -28,6 +29,7 @@ class RdnbenetApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VlessConfigModifierController()),
         ChangeNotifierProvider(create: (_) => CdnConfigScanController()),
         ChangeNotifierProvider(create: (_) => SmsEncoderController()),
+        ChangeNotifierProvider(create: (_) => NetlifyGeneratorController()),
       ],
       child: DynamicColorBuilder(
         builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {

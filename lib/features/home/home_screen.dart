@@ -15,6 +15,8 @@ import '../domain_checker/domain_checker_screen.dart';
 import '../edge_ip_checker/edge_ip_checker_screen.dart';
 import '../sms_encoder/sms_encoder_screen.dart';
 import '../vless_config_modifier/vless_config_modifier_screen.dart';
+import '../netlify_generator/netlify_generator_screen.dart';
+import '../akamai_scan/akamai_scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -108,7 +110,9 @@ class _HomeScreenState extends State<HomeScreen> {
     const DnsScannerScreen(),
     const DnsHunterScreen(),
     const EdgeIpCheckerScreen(),
+    const AkamaiScanScreen(),
     const VlessConfigModifierScreen(),
+    const NetlifyGeneratorScreen(),
     if (_showSmsEncoder) const SmsEncoderScreen(),
     if (_showCdnScan) const CdnConfigScanScreen(),
     if (_showAbout) const AboutScreen(),
@@ -138,9 +142,19 @@ class _HomeScreenState extends State<HomeScreen> {
       label: Text('Edge'),
     ),
     const NavigationRailDestination(
+      icon: Icon(Icons.cloud_sync_outlined),
+      selectedIcon: Icon(Icons.cloud_sync),
+      label: Text('Akamai'),
+    ),
+    const NavigationRailDestination(
       icon: Icon(Icons.vpn_key_outlined),
       selectedIcon: Icon(Icons.vpn_key),
       label: Text('VLESS'),
+    ),
+    const NavigationRailDestination(
+      icon: Icon(Icons.bolt_outlined),
+      selectedIcon: Icon(Icons.bolt),
+      label: Text('Netlify'),
     ),
     if (_showSmsEncoder)
       const NavigationRailDestination(
@@ -232,7 +246,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _DrawerItem(icon: Icons.dns, label: 'DNS', index: index++),
       _DrawerItem(icon: Icons.radar, label: 'Hunter', index: index++),
       _DrawerItem(icon: Icons.router, label: 'Edge', index: index++),
+      _DrawerItem(icon: Icons.cloud_sync, label: 'Akamai', index: index++),
       _DrawerItem(icon: Icons.vpn_key, label: 'VLESS', index: index++),
+      _DrawerItem(icon: Icons.bolt, label: 'Netlify', index: index++),
       if (_showSmsEncoder) _DrawerItem(icon: Icons.sms, label: 'SMS', index: index++),
       if (_showCdnScan) _DrawerItem(icon: Icons.speed, label: 'CDN Scan', index: index++),
       if (_showAbout) _DrawerItem(icon: Icons.info, label: 'About', index: index++),

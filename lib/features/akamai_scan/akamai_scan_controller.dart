@@ -51,6 +51,7 @@ class AkamaiScanController extends ChangeNotifier {
     notifyListeners();
   }
 
+
   /// Update scan configuration
   void updateConfig({
     int? port,

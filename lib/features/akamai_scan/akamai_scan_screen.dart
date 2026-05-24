@@ -43,6 +43,15 @@ class _AkamaiScanScreenState extends State<AkamaiScanScreen> {
     });
   }
 
+  void _shuffleInputLines(TextEditingController textCtrl, AkamaiScanController controller) {
+    final lines = textCtrl.text.split('\n').where((l) => l.trim().isNotEmpty).toList();
+    if (lines.length <= 1) return;
+    lines.shuffle();
+    final shuffled = lines.join('\n');
+    textCtrl.text = shuffled;
+    controller.updateInput(shuffled);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -332,6 +341,14 @@ class _AkamaiScanScreenState extends State<AkamaiScanScreen> {
                 icon: const Icon(Icons.cloud_outlined, size: 18),
                 label: const Text('Load Akamai IPs'),
               ),
+              if (controller.parsedIpCount > 0) ...[  
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  onPressed: () => _shuffleInputLines(_inputController, controller),
+                  icon: const Icon(Icons.shuffle, size: 20),
+                  tooltip: 'Shuffle ranges',
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -736,6 +753,12 @@ class _AkamaiScanScreenState extends State<AkamaiScanScreen> {
                         },
                         icon: const Icon(Icons.cloud_outlined, size: 18),
                         label: const Text('Load Akamai IPs'),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        onPressed: () => _shuffleInputLines(textController, controller),
+                        icon: const Icon(Icons.shuffle, size: 20),
+                        tooltip: 'Shuffle ranges',
                       ),
                     ],
                   ),

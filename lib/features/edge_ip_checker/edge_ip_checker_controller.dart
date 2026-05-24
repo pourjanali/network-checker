@@ -76,6 +76,7 @@ class EdgeIpCheckerController extends ChangeNotifier {
     notifyListeners();
   }
 
+
   /// Update scan configuration
   void updateConfig({
     String? testDomain,

@@ -63,6 +63,8 @@
 ### اسکنر Akamai
 اسکن بازه‌های IP Akamai
 
+### چک کردن sni spoof
+چک کردن باز بودن sni spoof. الهام گرفته شده از [sni scanner](https://github.com/seramo/sni-scanner)
 
 ## ویژگی‌های مخصوص اندروید
 

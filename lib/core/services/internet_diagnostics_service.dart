@@ -1742,14 +1742,14 @@ class InternetDiagnosticsService {
       );
     }
 
+    int index = 0;
     int reachable = 0;
     int latencySum = 0;
     int latencyCount = 0;
 
-    final queue = Stream.fromIterable(ips);
-
     Future<void> runWorker() async {
-      await for (final ip in queue) {
+      while (index < ips.length) {
+        final ip = ips[index++];
         final stopwatch = Stopwatch()..start();
         Socket? socket;
         try {

@@ -464,7 +464,7 @@ class InternetDiagnosticsController extends ChangeNotifier {
       final detailsText = 'Edge IP Range Scan Results (Tested 50 Random IPs):\n'
           'Total tested random IPs: ${scanResult.totalTested}\n'
           'Reachable edge IPs: ${scanResult.reachable}\n'
-          'Blocked/Offline IPs: ${scanResult.totalTested - scanResult.reachable}\n'
+          'Failed IPs: ${scanResult.totalTested - scanResult.reachable}\n'
           'CDN Accessibility: $accessibilityPercent%\n'
           'Average Handshake Latency: ${scanResult.averageLatencyMs}ms\n\n'
           'Note: This test scanned 50 randomly selected IPs from the CDN\'s public ranges to determine edge network accessibility and performance.';

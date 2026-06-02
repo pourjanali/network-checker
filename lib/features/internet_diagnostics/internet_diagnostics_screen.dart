@@ -34,11 +34,14 @@ class InternetDiagnosticsScreen extends StatelessWidget {
       ),
       body: Consumer<InternetDiagnosticsController>(
         builder: (context, controller, _) {
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 100),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 100),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 20),
 
@@ -424,9 +427,11 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        ),
+      );
+    },
+  ),
       floatingActionButton: Consumer<InternetDiagnosticsController>(
         builder: (context, controller, _) {
           final isRunning = controller.isRunning;
@@ -935,16 +940,20 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 550;
+                    final double maxWidth = constraints.maxWidth;
+                    final int crossAxisCount = (maxWidth / 220).floor().clamp(2, 6);
+                    final double itemWidth = (maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                    final double childAspectRatio = itemWidth / 85;
+
                     return GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: summary.providerResults.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isWide ? 3 : 2,
+                        crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
-                        childAspectRatio: isWide ? 2.35 : 1.95,
+                        childAspectRatio: childAspectRatio,
                       ),
                       itemBuilder: (context, index) {
                         return _DnsProviderAnalysisCard(
@@ -1508,16 +1517,20 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 620;
+                    final double maxWidth = constraints.maxWidth;
+                    final int crossAxisCount = (maxWidth / 220).floor().clamp(2, 6);
+                    final double itemWidth = (maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                    final double childAspectRatio = itemWidth / 85;
+
                     return GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       itemCount: summary.results.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: isWide ? 3 : 2,
+                        crossAxisCount: crossAxisCount,
                         mainAxisSpacing: 10,
                         crossAxisSpacing: 10,
-                        childAspectRatio: isWide ? 2.25 : 1.75,
+                        childAspectRatio: childAspectRatio,
                       ),
                       itemBuilder: (context, index) {
                         return _TlsAnalysisCard(
@@ -1692,8 +1705,10 @@ class InternetDiagnosticsScreen extends StatelessWidget {
               // Staggered Grid of Website Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 550;
-                  final crossAxisCount = isWide ? 3 : 2;
+                  final double maxWidth = constraints.maxWidth;
+                  final int crossAxisCount = (maxWidth / 220).floor().clamp(2, 6);
+                  final double itemWidth = (maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                  final double childAspectRatio = itemWidth / 85;
 
                   return GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
@@ -1703,7 +1718,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                       crossAxisCount: crossAxisCount,
                       mainAxisSpacing: 10,
                       crossAxisSpacing: 10,
-                      childAspectRatio: isWide ? 2.3 : 1.9,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemBuilder: (context, index) {
                       final target =
@@ -1868,8 +1883,10 @@ class InternetDiagnosticsScreen extends StatelessWidget {
               // Staggered Grid of CDN Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 550;
-                  final crossAxisCount = isWide ? 3 : 2;
+                  final double maxWidth = constraints.maxWidth;
+                  final int crossAxisCount = (maxWidth / 220).floor().clamp(2, 6);
+                  final double itemWidth = (maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                  final double childAspectRatio = itemWidth / 85;
 
                   return GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
@@ -1879,7 +1896,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                       crossAxisCount: crossAxisCount,
                       mainAxisSpacing: 10,
                       crossAxisSpacing: 10,
-                      childAspectRatio: isWide ? 2.3 : 1.9,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemBuilder: (context, index) {
                       final target =
@@ -2040,8 +2057,10 @@ class InternetDiagnosticsScreen extends StatelessWidget {
               // Staggered Grid of Social Media Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth > 550;
-                  final crossAxisCount = isWide ? 3 : 2;
+                  final double maxWidth = constraints.maxWidth;
+                  final int crossAxisCount = (maxWidth / 220).floor().clamp(2, 6);
+                  final double itemWidth = (maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                  final double childAspectRatio = itemWidth / 85;
 
                   return GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
@@ -2051,7 +2070,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                       crossAxisCount: crossAxisCount,
                       mainAxisSpacing: 10,
                       crossAxisSpacing: 10,
-                      childAspectRatio: isWide ? 2.3 : 1.9,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemBuilder: (context, index) {
                       final target = InternetDiagnosticsController

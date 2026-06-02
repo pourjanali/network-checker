@@ -721,13 +721,20 @@ class InternetDiagnosticsService {
     }
 
     final stopwatch = Stopwatch()..start();
+    Socket? rawSocket;
+    SecureSocket? socket;
     try {
-      final socket = await SecureSocket.connect(
+      rawSocket = await Socket.connect(
         target.domain,
         443,
-        timeout: timeoutLimit,
-        supportedProtocols: const ['h2', 'http/1.1'],
+        timeout: const Duration(seconds: 8),
       );
+      socket = await SecureSocket.secure(
+        rawSocket,
+        host: target.domain,
+        supportedProtocols: const ['h2', 'http/1.1'],
+      ).timeout(const Duration(seconds: 8));
+
       stopwatch.stop();
       handshakeMs = stopwatch.elapsedMilliseconds;
       handshakeSuccess = true;
@@ -760,16 +767,19 @@ class InternetDiagnosticsService {
       findings.add(
         'TLS handshake failed; possible interception or active blocking.',
       );
+      rawSocket?.destroy();
     } on TimeoutException {
       stopwatch.stop();
       handshakeMs = stopwatch.elapsedMilliseconds;
       error = 'TLS handshake timed out.';
       findings.add('TLS handshake timeout.');
+      rawSocket?.destroy();
     } catch (e) {
       stopwatch.stop();
       handshakeMs = stopwatch.elapsedMilliseconds;
       error = e.toString();
       findings.add('TLS connection failed.');
+      rawSocket?.destroy();
     }
 
     CloudflareTraceResult? traceResult;
@@ -830,7 +840,7 @@ class InternetDiagnosticsService {
     final stopwatch = Stopwatch()..start();
 
     try {
-      final response = await http.get(uri).timeout(timeoutLimit);
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
       stopwatch.stop();
 
       if (response.statusCode >= 400) {

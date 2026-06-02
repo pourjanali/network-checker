@@ -567,7 +567,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
         } else {
           pulseColor = colorScheme.warning;
           statusTitle = 'Partial Internet';
-          statusDesc = 'Unrestricted access, but some protocols/sites failed';
+          statusDesc = 'Access/Protocol/Site restrictions found';
           centerIcon = Icons.warning_amber_rounded;
           centerIconColor = colorScheme.warning;
         }
@@ -733,6 +733,119 @@ class InternetDiagnosticsScreen extends StatelessWidget {
               ),
             ).animate(key: ValueKey(statusDesc)).fadeIn(duration: 300.ms),
           ),
+
+          if (controller.isCompleted) ...[
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 480),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      colorScheme.primaryContainer.withValues(alpha: 0.15),
+                      colorScheme.surfaceContainerHighest.withValues(alpha: 0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.insights_rounded,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Analyze with AI',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Paste this data in an AI tool like ChatGPT, Claude, or Gemini to get an explanation of your network situation.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.9),
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final report = controller.generateDiagnosticReport();
+                        const promptText = '\n\nAbove is the data gathered with a full analysis of my internet. '
+                            'Generate charts comparing the results between this scan and estimated scans in Germany, US, China and Russia. '
+                            'Explain the weakpoints of this internet and compare to those countries. '
+                            'From 1-10 how hard is it to use this internet? Be straight to the point.';
+                        Clipboard.setData(ClipboardData(text: '$report$promptText'));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: colorScheme.onInverseSurface,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                const Text('Diagnostic information copied to clipboard!'),
+                              ],
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: colorScheme.inverseSurface,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        elevation: 2,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.copy_rounded, size: 18),
+                      label: const Text(
+                        'Copy All Information',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutBack),
+          ],
         ],
       ),
     );

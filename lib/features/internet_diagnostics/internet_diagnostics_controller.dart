@@ -961,4 +961,286 @@ class InternetDiagnosticsController extends ChangeNotifier {
     if (result == null || !result.success) return null;
     return result.message.replaceFirst('IP retrieved: ', '').trim();
   }
+
+  /// Generates a comprehensive markdown-formatted plain text report of the
+  /// entire diagnostic suite's results to copy/paste into AI tools.
+  String generateDiagnosticReport() {
+    final buffer = StringBuffer();
+    buffer.writeln('==================================================');
+    buffer.writeln('NETWORK CHECKER DIAGNOSTIC REPORT');
+    buffer.writeln('Generated at: ${DateTime.now().toLocal()}');
+    buffer.writeln('==================================================\n');
+
+    // 1. Overview
+    buffer.writeln('### OVERVIEW');
+    String statusTitle = 'Unknown';
+    String statusDesc = 'No results available';
+    if (isCompleted) {
+      if (overallInternetAccess) {
+        if (dnsSuccess &&
+            ipv4Success &&
+            ipv6Success &&
+            httpsSuccess &&
+            dnsAnalysisSuccess &&
+            tlsAnalysisSuccess &&
+            domesticIpSuccess &&
+            internationalIpSuccess &&
+            blockedWebsitesCount == 0 &&
+            blockedCdnsCount == 0) {
+          statusTitle = 'Excellent Access';
+          statusDesc = 'Unrestricted IPv4 & IPv6 internet connection';
+        } else {
+          statusTitle = 'Partial Internet';
+          statusDesc = 'Unrestricted access, but some checks failed';
+        }
+      } else {
+        statusTitle = 'Offline / Blocked';
+        statusDesc = 'No active route to the internet detected';
+      }
+    } else if (isRunning) {
+      statusTitle = 'Running';
+      statusDesc = 'Diagnostics are currently in progress';
+    } else {
+      statusTitle = 'Idle';
+      statusDesc = 'Ready to analyze';
+    }
+    buffer.writeln('Overall Status: $statusTitle ($statusDesc)');
+    buffer.writeln('IPv4 Connectivity: ${ipv4Success ? "Available" : "Unavailable"}');
+    buffer.writeln('IPv6 Connectivity: ${ipv6Success ? "Available" : "Unavailable"}');
+    buffer.writeln('HTTPS Connection & TLS: ${httpsSuccess ? "Success" : "Failed"}');
+    buffer.writeln('DNS Resolution: ${dnsSuccess ? "Success" : "Failed"}\n');
+
+    // 2. DNS Resolution Details
+    if (_dnsResult != null) {
+      buffer.writeln('### DNS RESOLUTION');
+      buffer.writeln('Status: ${_dnsResult!.success ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Message: ${_dnsResult!.message}');
+      buffer.writeln('Latency: ${_dnsResult!.latencyMs} ms');
+      if (_dnsResult!.details != null && _dnsResult!.details!.isNotEmpty) {
+        buffer.writeln('Details:\n${_dnsResult!.details}');
+      }
+      buffer.writeln();
+    }
+
+    // 3. IPv4 Connectivity Details
+    if (_ipv4Result != null) {
+      buffer.writeln('### IPV4 CONNECTIVITY');
+      buffer.writeln('Status: ${_ipv4Result!.success ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Message: ${_ipv4Result!.message}');
+      buffer.writeln('Latency: ${_ipv4Result!.latencyMs} ms');
+      if (_ipv4Result!.details != null && _ipv4Result!.details!.isNotEmpty) {
+        buffer.writeln('Details:\n${_ipv4Result!.details}');
+      }
+      buffer.writeln();
+    }
+
+    // 4. IPv6 Connectivity Details
+    if (_ipv6Result != null) {
+      buffer.writeln('### IPV6 CONNECTIVITY');
+      buffer.writeln('Status: ${_ipv6Result!.success ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Message: ${_ipv6Result!.message}');
+      buffer.writeln('Latency: ${_ipv6Result!.latencyMs} ms');
+      if (_ipv6Result!.details != null && _ipv6Result!.details!.isNotEmpty) {
+        buffer.writeln('Details:\n${_ipv6Result!.details}');
+      }
+      buffer.writeln();
+    }
+
+    // 5. HTTPS Traffic Details
+    if (_httpsResult != null) {
+      buffer.writeln('### HTTPS TRAFFIC');
+      buffer.writeln('Status: ${_httpsResult!.success ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Message: ${_httpsResult!.message}');
+      buffer.writeln('Latency: ${_httpsResult!.latencyMs} ms');
+      if (_httpsResult!.details != null && _httpsResult!.details!.isNotEmpty) {
+        buffer.writeln('Details:\n${_httpsResult!.details}');
+      }
+      buffer.writeln();
+    }
+
+    // 6. DNS Analysis Details
+    if (_dnsAnalysisSummary != null) {
+      buffer.writeln('### DNS PROVIDER ANALYSIS');
+      buffer.writeln('Status: ${_dnsAnalysisSummary!.success ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Successful Providers: ${_dnsAnalysisSummary!.successfulProviders} / ${_dnsAnalysisSummary!.providerResults.length}');
+      buffer.writeln('Average Latency: ${_dnsAnalysisSummary!.averageLatencyMs} ms');
+      buffer.writeln('Consistency Score: ${(_dnsAnalysisSummary!.consistencyScore * 100).toStringAsFixed(1)}%');
+      buffer.writeln('Tampering Score: ${_dnsAnalysisSummary!.tamperingScore} / 100');
+      buffer.writeln('Findings:');
+      if (_dnsAnalysisSummary!.findings.isEmpty) {
+        buffer.writeln('- No strong DNS tampering indicators detected.');
+      } else {
+        for (final finding in _dnsAnalysisSummary!.findings) {
+          buffer.writeln('- $finding');
+        }
+      }
+      buffer.writeln('Provider Results:');
+      for (final res in _dnsAnalysisSummary!.providerResults) {
+        buffer.writeln('- ${res.provider.name} (${res.provider.address}): Success Rate: ${(res.successRate * 100).toStringAsFixed(1)}%, Avg Latency: ${res.averageLatencyMs ?? "--"} ms');
+        for (final qr in res.queryResults) {
+          buffer.writeln('  * Domain: ${qr.domain}, Resolved: ${qr.success}, IPs: ${qr.ipAddresses.join(", ")}, Latency: ${qr.latencyMs} ms${qr.error != null ? " (Error: ${qr.error})" : ""}');
+          if (qr.suspiciousReasons.isNotEmpty) {
+            buffer.writeln('    Suspicious indicators: ${qr.suspiciousReasons.join(", ")}');
+          }
+        }
+      }
+      buffer.writeln();
+    }
+
+    // 7. Gateways and public IPs
+    buffer.writeln('### PUBLIC IP & GATEWAY ROUTING ANALYSIS');
+    if (_domesticIpResult != null) {
+      buffer.writeln('Domestic IP query success: ${_domesticIpResult!.success}');
+      buffer.writeln('Domestic IP message: ${_domesticIpResult!.message}');
+      if (_domesticIpResult!.details != null && _domesticIpResult!.details!.isNotEmpty) {
+        buffer.writeln('Domestic details:\n${_domesticIpResult!.details}');
+      }
+    }
+    if (_internationalIpResult != null) {
+      buffer.writeln('International IP query success: ${_internationalIpResult!.success}');
+      buffer.writeln('International IP message: ${_internationalIpResult!.message}');
+      if (_internationalIpResult!.details != null && _internationalIpResult!.details!.isNotEmpty) {
+        buffer.writeln('International details:\n${_internationalIpResult!.details}');
+      }
+    }
+    if (_routingAnalysisResult != null) {
+      buffer.writeln('Routing Analysis status: ${_routingAnalysisResult!.message}');
+      if (_routingAnalysisResult!.details != null && _routingAnalysisResult!.details!.isNotEmpty) {
+        buffer.writeln('Routing Diagnosis:\n${_routingAnalysisResult!.details}');
+      }
+    }
+    buffer.writeln();
+
+    // 8. TLS HTTPS Interception Details
+    if (_tlsAnalysisSummary != null) {
+      buffer.writeln('### TLS / HTTPS INTERCEPTION ANALYSIS');
+      buffer.writeln('Successful Handshakes: ${_tlsAnalysisSummary!.successfulHandshakes} / ${_tlsAnalysisSummary!.results.length}');
+      buffer.writeln('Valid Certificates: ${_tlsAnalysisSummary!.validCertificates}');
+      buffer.writeln('Certificate Mismatches: ${_tlsAnalysisSummary!.certificateMismatches}');
+      buffer.writeln('Cloudflare Trace Mismatches: ${_tlsAnalysisSummary!.traceMismatches}');
+      buffer.writeln('Average Handshake Latency: ${_tlsAnalysisSummary!.averageHandshakeLatencyMs} ms');
+      buffer.writeln('Average Tampering Score: ${_tlsAnalysisSummary!.averageTamperingScore} / 100');
+      buffer.writeln('Findings:');
+      if (_tlsAnalysisSummary!.findings.isEmpty) {
+        buffer.writeln('- No strong TLS interception indicators detected.');
+      } else {
+        for (final finding in _tlsAnalysisSummary!.findings) {
+          buffer.writeln('- $finding');
+        }
+      }
+      buffer.writeln('Target Details:');
+      for (final res in _tlsAnalysisSummary!.results) {
+        buffer.writeln('- ${res.target.domain} (Expected IP: ${res.target.expectedIp}):');
+        buffer.writeln('  * Handshake Success: ${res.handshakeSuccess}');
+        buffer.writeln('  * Handshake Latency: ${res.handshakeLatencyMs} ms');
+        buffer.writeln('  * TLS Version: ${res.tlsVersion}');
+        buffer.writeln('  * Certificate Valid: ${res.certificateValid}');
+        buffer.writeln('  * Certificate Mismatch: ${res.certificateMismatch}');
+        if (res.certificateSubject != null) {
+          buffer.writeln('  * Cert Subject: ${res.certificateSubject}');
+        }
+        if (res.certificateIssuer != null) {
+          buffer.writeln('  * Cert Issuer: ${res.certificateIssuer}');
+        }
+        buffer.writeln('  * Resolved IPs: ${res.resolvedIps.join(", ")}');
+        if (res.traceResult != null) {
+          final tr = res.traceResult!;
+          buffer.writeln('  * Cloudflare Trace Available: ${tr.traceAvailable}');
+          if (tr.traceIp != null) buffer.writeln('    - Trace IP: ${tr.traceIp}');
+          if (tr.expectedPublicIp != null) buffer.writeln('    - Expected Public IP: ${tr.expectedPublicIp}');
+          if (tr.traceMatchesPublicIp != null) buffer.writeln('    - Trace Matches Public IP: ${tr.traceMatchesPublicIp}');
+          if (tr.colo != null) buffer.writeln('    - Colo: ${tr.colo}');
+          if (tr.httpProtocol != null) buffer.writeln('    - HTTP Protocol: ${tr.httpProtocol}');
+          if (tr.tlsProtocol != null) buffer.writeln('    - TLS Protocol: ${tr.tlsProtocol}');
+        }
+        if (res.findings.isNotEmpty) {
+          buffer.writeln('  * Findings: ${res.findings.join(", ")}');
+        }
+        if (res.error != null) {
+          buffer.writeln('  * Error: ${res.error}');
+        }
+      }
+      buffer.writeln();
+    }
+
+    // 9. Website Reachability details
+    if (_websiteResults.isNotEmpty) {
+      buffer.writeln('### WEBSITE REACHABILITY SCAN');
+      buffer.writeln('Reachable: $reachableWebsitesCount');
+      buffer.writeln('Blocked: $blockedWebsitesCount');
+      buffer.writeln('Failed/DNS/TLS/Timeout: $failedWebsitesCount');
+      buffer.writeln('Average Latency: $averageWebsiteLatencyMs ms');
+      buffer.writeln('Website Details:');
+      for (final res in _websiteResults) {
+        buffer.writeln('- ${res.name} (${res.domain}): Status: ${res.status.name}, Latency: ${res.latencyMs ?? "--"} ms${res.statusCode != null ? ", Status Code: ${res.statusCode}" : ""}${res.errorDetails != null ? " (Details: ${res.errorDetails})" : ""}');
+      }
+      buffer.writeln();
+    }
+
+    // 10. CDN Reachability details
+    if (_cdnResults.isNotEmpty) {
+      buffer.writeln('### CDN REACHABILITY SCAN');
+      buffer.writeln('Reachable: $reachableCdnsCount');
+      buffer.writeln('Blocked: $blockedCdnsCount');
+      buffer.writeln('Failed/DNS/TLS/Timeout: $failedCdnsCount');
+      buffer.writeln('Average Latency: $averageCdnLatencyMs ms');
+      buffer.writeln('CDN Details:');
+      for (final res in _cdnResults) {
+        buffer.writeln('- ${res.name} (${res.domain}): Status: ${res.status.name}, Latency: ${res.latencyMs ?? "--"} ms${res.errorDetails != null ? "\n  (Edge Details: ${res.errorDetails})" : ""}');
+      }
+      buffer.writeln();
+    }
+
+    // 11. Social Media details
+    if (_socialMediaResults.isNotEmpty) {
+      buffer.writeln('### SOCIAL MEDIA ACCESSIBILITY SCAN');
+      buffer.writeln('Fully Accessible: $accessibleSocialCount');
+      buffer.writeln('Partially Accessible: $partialSocialCount');
+      buffer.writeln('Blocked/Censored: $blockedSocialCount');
+      buffer.writeln('Average Latency: $averageSocialLatencyMs ms');
+      buffer.writeln('Platform Details:');
+      for (final res in _socialMediaResults) {
+        buffer.writeln('- ${res.name}: Status: ${res.status.name}, Latency: ${res.latencyMs ?? "--"} ms');
+        buffer.writeln('  * Primary (${res.primaryResult.domain}): ${res.primaryResult.status.name} (${res.primaryResult.latencyMs ?? "--"} ms)');
+        buffer.writeln('  * Secondary (${res.secondaryResult.domain}): ${res.secondaryResult.status.name} (${res.secondaryResult.latencyMs ?? "--"} ms)');
+      }
+      buffer.writeln();
+    }
+
+    // 12. Protocol Accessibility Scan Details
+    if (_protocolAccessibilitySummaries.isNotEmpty) {
+      buffer.writeln('### PROTOCOL ACCESSIBILITY SCAN');
+      buffer.writeln('Supported: $supportedProtocolsCount');
+      buffer.writeln('Blocked: $blockedProtocolsCount');
+      buffer.writeln('Protocol Details:');
+      for (final summary in _protocolAccessibilitySummaries) {
+        buffer.writeln('- ${summary.protocolName} (${summary.description}):');
+        buffer.writeln('  * Status: ${summary.isSupported ? "Supported" : (summary.isBlocked ? "Blocked" : "Unsupported")}, Avg Latency: ${summary.averageLatencyMs} ms');
+        buffer.writeln('  * Domain Results:');
+        for (final res in summary.results) {
+          buffer.writeln('    - ${res.domain}: ${res.success ? "Success" : "Failed"}${res.latencyMs != null ? " (${res.latencyMs} ms)" : ""}${res.errorMessage != null ? " [Error: ${res.errorMessage}]" : ""}${res.details != null ? " [Details: ${res.details}]" : ""}');
+        }
+      }
+      buffer.writeln();
+    }
+
+    // 13. Packet Loss Analysis Details
+    if (_packetLossSummary != null) {
+      buffer.writeln('### PACKET LOSS ANALYSIS');
+      buffer.writeln('Status: ${packetLossSuccess ? "SUCCESS" : "FAILED"}');
+      buffer.writeln('Target Details:');
+      for (final r in _packetLossSummary!.results) {
+        buffer.writeln('- Target: ${r.destination}:');
+        buffer.writeln('  * Loss: ${r.lossPercentage.toStringAsFixed(1)}% (${r.totalSent - r.totalReceived}/${r.totalSent} lost)');
+        buffer.writeln('  * Consecutive Drops Max: ${r.maxConsecutiveLoss}');
+        buffer.writeln('  * Latency: ${r.avgLatency != null ? "${r.avgLatency} ms" : "--"} avg (min: ${r.minLatency != null ? "${r.minLatency} ms" : "--"}, max: ${r.maxLatency != null ? "${r.maxLatency} ms" : "--"})');
+        if (r.errorMessage != null) {
+          buffer.writeln('  * Error: ${r.errorMessage}');
+        }
+      }
+      buffer.writeln();
+    }
+
+    return buffer.toString().trim();
+  }
 }

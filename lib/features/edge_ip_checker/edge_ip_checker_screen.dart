@@ -1266,7 +1266,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: 'Concurrent Workers',
-                  hintText: '20',
+                  hintText: '100',
                 ),
               ),
               const SizedBox(height: 12),
@@ -1293,7 +1293,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
               testPath: _pathController.text,
               port: int.tryParse(_portController.text) ?? 443,
               timeout: Duration(seconds: int.tryParse(_timeoutController.text) ?? 3),
-              maxWorkers: int.tryParse(_workersController.text) ?? 20,
+              maxWorkers: int.tryParse(_workersController.text) ?? 100,
               testDownload: _testDownload,
             );
             Navigator.pop(context, newConfig);

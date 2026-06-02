@@ -1660,6 +1660,59 @@ class InternetDiagnosticsService {
       secondaryResult: secondary,
     );
   }
+
+  /// Scans a list of CDN range IPs in parallel to verify reachability and latency.
+  static Future<CdnIpScanResult> scanCdnIps(
+    List<String> ips, {
+    int port = 443,
+    int maxConcurrency = 300,
+    Duration timeout = const Duration(milliseconds: 500),
+  }) async {
+    if (ips.isEmpty) {
+      return CdnIpScanResult(
+        totalTested: 0,
+        reachable: 0,
+        averageLatencyMs: 0,
+      );
+    }
+
+    int reachable = 0;
+    int latencySum = 0;
+    int latencyCount = 0;
+
+    final queue = Stream.fromIterable(ips);
+
+    Future<void> runWorker() async {
+      await for (final ip in queue) {
+        final stopwatch = Stopwatch()..start();
+        Socket? socket;
+        try {
+          socket = await Socket.connect(ip, port, timeout: timeout);
+          stopwatch.stop();
+          reachable++;
+          latencySum += stopwatch.elapsedMilliseconds;
+          latencyCount++;
+        } catch (_) {
+          stopwatch.stop();
+        } finally {
+          socket?.destroy();
+        }
+      }
+    }
+
+    final List<Future<void>> workers = List.generate(
+      ips.length < maxConcurrency ? ips.length : maxConcurrency,
+      (_) => runWorker(),
+    );
+
+    await Future.wait(workers);
+
+    return CdnIpScanResult(
+      totalTested: ips.length,
+      reachable: reachable,
+      averageLatencyMs: latencyCount > 0 ? (latencySum / latencyCount).round() : 0,
+    );
+  }
 }
 
 /// Model holding GeoIP details retrieved via API
@@ -1974,4 +2027,18 @@ class _DnsTestResult {
     this.latencyMs,
     this.error,
   });
+}
+
+class CdnIpScanResult {
+  final int totalTested;
+  final int reachable;
+  final int averageLatencyMs;
+
+  CdnIpScanResult({
+    required this.totalTested,
+    required this.reachable,
+    required this.averageLatencyMs,
+  });
+
+  double get accessibilityRate => totalTested > 0 ? reachable / totalTested : 0;
 }

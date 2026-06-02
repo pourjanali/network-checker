@@ -72,7 +72,12 @@ class InternetDiagnosticsScreen extends StatelessWidget {
 
                 const SizedBox(height: 16),
 
-                // 7. Social Media Accessibility Dashboard
+                // 7. CDN Reachability Scan Dashboard
+                _buildCdnReachabilityDashboard(context, controller),
+
+                const SizedBox(height: 16),
+
+                // 8. Social Media Accessibility Dashboard
                 _buildSocialMediaAccessibilityDashboard(context, controller),
 
                 const SizedBox(height: 24),
@@ -353,6 +358,36 @@ class InternetDiagnosticsScreen extends StatelessWidget {
 
                       const SizedBox(height: 12),
 
+                      // CDN Reachability Scan checklist card
+                      _DiagnosticCheckCard(
+                        title: 'CDN Reachability Scan',
+                        description:
+                            'Tests connectivity and latency to major global CDNs',
+                        iconData: Icons.cloud_done_rounded,
+                        isPending:
+                            controller.isIdle ||
+                            (controller.isRunning &&
+                                controller.completedTestsCount < 10),
+                        isRunning: controller.isScanningCdns,
+                        isSuccess: controller.isCompleted
+                            ? controller.reachableCdnsCount > 0
+                            : (controller.completedTestsCount > 10
+                                  ? controller.reachableCdnsCount > 0
+                                  : false),
+                        result: controller.isCompleted
+                            ? DiagnosticTestResult(
+                                name: 'CDN Reachability Scan',
+                                success: controller.reachableCdnsCount > 0,
+                                message:
+                                    '${controller.reachableCdnsCount} of 6 CDNs reachable',
+                                details:
+                                    'Checklist Scan results:\nReachable: ${controller.reachableCdnsCount}\nBlocked: ${controller.blockedCdnsCount}\nFailed/DNS/TLS: ${controller.failedCdnsCount}\nAverage Latency: ${controller.averageCdnLatencyMs}ms',
+                              )
+                            : null,
+                      ).animate().fadeIn(delay: 950.ms).slideY(begin: 0.1, end: 0),
+
+                      const SizedBox(height: 12),
+
                       // Social Media Accessibility Scan checklist card
                       _DiagnosticCheckCard(
                         title: 'Social Media Accessibility Scan',
@@ -362,12 +397,12 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                         isPending:
                             controller.isIdle ||
                             (controller.isRunning &&
-                                controller.completedTestsCount < 10),
+                                controller.completedTestsCount < 11),
                         isRunning: controller.isScanningSocialMedia,
                         isSuccess: controller.isCompleted
                             ? (controller.accessibleSocialCount > 0 ||
                                   controller.partialSocialCount > 0)
-                            : (controller.completedTestsCount > 10
+                            : (controller.completedTestsCount > 11
                                   ? (controller.accessibleSocialCount > 0 ||
                                         controller.partialSocialCount > 0)
                                   : false),
@@ -383,7 +418,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
                                     'Checklist Scan results:\nFully Accessible: ${controller.accessibleSocialCount}\nPartially Accessible: ${controller.partialSocialCount}\nBlocked/Censored: ${controller.blockedSocialCount}\nAverage Latency: ${controller.averageSocialLatencyMs}ms',
                               )
                             : null,
-                      ).animate().fadeIn(delay: 1000.ms).slideY(begin: 0.1, end: 0),
+                      ).animate().fadeIn(delay: 1050.ms).slideY(begin: 0.1, end: 0),
                     ],
                   ),
                 ),
@@ -438,7 +473,8 @@ class InternetDiagnosticsScreen extends StatelessWidget {
             controller.tlsAnalysisSuccess &&
             controller.domesticIpSuccess &&
             controller.internationalIpSuccess &&
-            controller.blockedWebsitesCount == 0) {
+            controller.blockedWebsitesCount == 0 &&
+            controller.blockedCdnsCount == 0) {
           pulseColor = colorScheme.success;
           statusTitle = 'Excellent Access';
           statusDesc = 'Unrestricted IPv4 & IPv6 internet connection';
@@ -1703,6 +1739,178 @@ class InternetDiagnosticsScreen extends StatelessWidget {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
   }
 
+  Widget _buildCdnReachabilityDashboard(
+    BuildContext context,
+    InternetDiagnosticsController controller,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Display only when the CDN reachability step starts
+    if (controller.isIdle ||
+        (controller.isRunning && controller.completedTestsCount < 10)) {
+      return const SizedBox.shrink();
+    }
+
+    final cdnsCount = controller.cdnResults.length;
+    final totalCount = InternetDiagnosticsController.targetCdns.length;
+    final isScanning = controller.isScanningCdns;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Summary Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CDN REACHABILITY',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.8,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isScanning
+                              ? 'Scanning: $cdnsCount of $totalCount CDNs...'
+                              : 'Scan complete: $cdnsCount targets verified',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isScanning)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Progress bar during scan
+              if (isScanning) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: cdnsCount / totalCount,
+                    minHeight: 4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Summary Stats Chips
+              if (cdnsCount > 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatBubble(
+                      context,
+                      label: 'Reachable',
+                      value: '${controller.reachableCdnsCount}',
+                      color: colorScheme.success,
+                      bgColor: colorScheme.successContainer,
+                    ),
+                    _buildStatBubble(
+                      context,
+                      label: 'Blocked',
+                      value: '${controller.blockedCdnsCount}',
+                      color: colorScheme.error,
+                      bgColor: colorScheme.errorContainer,
+                    ),
+                    _buildStatBubble(
+                      context,
+                      label: 'Failed/TLS',
+                      value: '${controller.failedCdnsCount}',
+                      color: colorScheme.warning,
+                      bgColor: colorScheme.warningContainer,
+                    ),
+                    _buildStatBubble(
+                      context,
+                      label: 'Avg Latency',
+                      value: '${controller.averageCdnLatencyMs}ms',
+                      color: colorScheme.primary,
+                      bgColor: colorScheme.primaryContainer,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Staggered Grid of CDN Cards
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 550;
+                  final crossAxisCount = isWide ? 3 : 2;
+
+                  return GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    itemCount: totalCount,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: isWide ? 2.3 : 1.9,
+                    ),
+                    itemBuilder: (context, index) {
+                      final target =
+                          InternetDiagnosticsController.targetCdns[index];
+                      final name = target['name']!;
+                      final domain = target['domain']!;
+
+                      final hasResult = index < controller.cdnResults.length;
+                      final result =
+                          hasResult ? controller.cdnResults[index] : null;
+                      final isCurrentScanning =
+                          index == controller.cdnResults.length;
+
+                      return _CdnReachabilityCard(
+                        name: name,
+                        domain: domain,
+                        result: result,
+                        isScanning: isScanning && isCurrentScanning,
+                        index: index,
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+  }
+
   Widget _buildSocialMediaAccessibilityDashboard(
     BuildContext context,
     InternetDiagnosticsController controller,
@@ -1711,7 +1919,7 @@ class InternetDiagnosticsScreen extends StatelessWidget {
 
     // Display only when the social media accessibility step starts
     if (controller.isIdle ||
-        (controller.isRunning && controller.completedTestsCount < 10)) {
+        (controller.isRunning && controller.completedTestsCount < 11)) {
       return const SizedBox.shrink();
     }
 
@@ -3874,6 +4082,468 @@ class _SocialMediaCard extends StatelessWidget {
         return Icons.lock_rounded;
       default:
         return Icons.public_rounded;
+    }
+  }
+}
+
+class _CdnReachabilityCard extends StatelessWidget {
+  final String name;
+  final String domain;
+  final WebsiteReachabilityResult? result;
+  final bool isScanning;
+  final int index;
+
+  const _CdnReachabilityCard({
+    required this.name,
+    required this.domain,
+    this.result,
+    required this.isScanning,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Color cardBorderColor = colorScheme.outlineVariant.withValues(alpha: 0.3);
+    Color statusBgColor = colorScheme.surfaceContainerHighest;
+    Color statusTextColor = colorScheme.onSurfaceVariant;
+    String statusText = 'PENDING';
+    bool showLatency = false;
+
+    if (isScanning) {
+      statusText = 'SCANNING';
+      statusBgColor = colorScheme.primaryContainer;
+      statusTextColor = colorScheme.primary;
+    } else if (result != null) {
+      showLatency =
+          result!.status == ReachabilityStatus.reachable &&
+          result!.latencyMs != null;
+      switch (result!.status) {
+        case ReachabilityStatus.reachable:
+          statusText = 'REACHABLE';
+          statusBgColor = colorScheme.successContainer;
+          statusTextColor = colorScheme.success;
+          cardBorderColor = colorScheme.success.withValues(alpha: 0.15);
+          break;
+        case ReachabilityStatus.blocked:
+          statusText = 'BLOCKED';
+          statusBgColor = colorScheme.errorContainer;
+          statusTextColor = colorScheme.error;
+          cardBorderColor = colorScheme.error.withValues(alpha: 0.15);
+          break;
+        case ReachabilityStatus.timeout:
+          statusText = 'TIMEOUT';
+          statusBgColor = colorScheme.warningContainer;
+          statusTextColor = colorScheme.warning;
+          cardBorderColor = colorScheme.warning.withValues(alpha: 0.15);
+          break;
+        case ReachabilityStatus.dnsFailure:
+          statusText = 'DNS FAIL';
+          statusBgColor = Colors.purple.shade100;
+          statusTextColor = Colors.purple.shade800;
+          break;
+        case ReachabilityStatus.tlsFailure:
+          statusText = 'TLS FAIL';
+          statusBgColor = Colors.cyan.shade100;
+          statusTextColor = Colors.cyan.shade800;
+          cardBorderColor = Colors.cyan.withValues(alpha: 0.25);
+          break;
+      }
+    }
+
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: cardBorderColor, width: 1),
+      ),
+      child: InkWell(
+        onTap: result != null ? () => _showCdnInfoSheet(context) : null,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Logo and Name
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: _getBrandColor(name).withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _getCdnIcon(name),
+                      size: 16,
+                      color: _getBrandColor(name),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          domain.replaceFirst('www.', ''),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // Status & Latency Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusBgColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isScanning) ...[
+                          const SizedBox(
+                            width: 8,
+                            height: 8,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.2,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.bold,
+                            color: statusTextColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Latency Label
+                  if (showLatency)
+                    Text(
+                      '${result!.latencyMs}ms',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCdnInfoSheet(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    if (result == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.45,
+            minChildSize: 0.3,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (context, scrollController) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: colorScheme.outlineVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Header
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _getBrandColor(name).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _getCdnIcon(name),
+                            size: 28,
+                            color: _getBrandColor(name),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                domain,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Stats
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoItem(
+                            context,
+                            label: 'Reachability',
+                            value: result!.status.name.toUpperCase(),
+                            icon: Icons.alt_route_rounded,
+                            color:
+                                result!.status == ReachabilityStatus.reachable
+                                    ? colorScheme.success
+                                    : colorScheme.error,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInfoItem(
+                            context,
+                            label: 'Latency',
+                            value: result!.latencyMs != null
+                                ? '${result!.latencyMs}ms'
+                                : 'N/A',
+                            icon: Icons.timer_outlined,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Technical Details Card
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'TECHNICAL LOGS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.0,
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            Icons.copy_rounded,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                          tooltip: 'Copy details to clipboard',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(text: result?.errorDetails ?? ''),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Reachability details copied to clipboard',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.6,
+                          ),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        result?.errorDetails ??
+                            'No further diagnostic data retrieved.',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11.5,
+                          height: 1.45,
+                          color: result!.status == ReachabilityStatus.reachable
+                              ? colorScheme.onSurface
+                              : colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoItem(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helpers to fetch brand colors and icons
+  Color _getBrandColor(String name) {
+    switch (name) {
+      case 'Cloudflare':
+        return const Color(0xFFF38020);
+      case 'Akamai':
+        return const Color(0xFF002E5D);
+      case 'Fastly':
+        return const Color(0xFFFF2828);
+      case 'AWS CloudFront':
+        return const Color(0xFFFF9900);
+      case 'Azure CDN':
+        return const Color(0xFF0078D4);
+      case 'Google CDN':
+        return const Color(0xFF4285F4);
+      default:
+        return Colors.blue;
+    }
+  }
+
+  IconData _getCdnIcon(String name) {
+    switch (name) {
+      case 'Cloudflare':
+        return Icons.cloud_queue_rounded;
+      case 'Akamai':
+        return Icons.dns_rounded;
+      case 'Fastly':
+        return Icons.bolt_rounded;
+      case 'AWS CloudFront':
+        return Icons.alt_route_rounded;
+      case 'Azure CDN':
+        return Icons.cloud_sync_rounded;
+      case 'Google CDN':
+        return Icons.lan_rounded;
+      default:
+        return Icons.cloud_rounded;
     }
   }
 }

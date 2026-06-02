@@ -60,4 +60,18 @@ void main() {
       expect(result.details, contains('https://www.google.com'));
     });
   });
+
+  group('InternetDiagnosticsService - CDN Parallel IP Scanner', () {
+    test('scanCdnIps parses and returns scan result structure', () async {
+      final result = await InternetDiagnosticsService.scanCdnIps(
+        ['8.8.8.8', '1.1.1.1'],
+        timeout: const Duration(milliseconds: 100),
+      );
+      
+      expect(result.totalTested, equals(2));
+      expect(result.reachable, isNotNull);
+      expect(result.averageLatencyMs, isNotNull);
+      expect(result.accessibilityRate, isNotNull);
+    });
+  });
 }

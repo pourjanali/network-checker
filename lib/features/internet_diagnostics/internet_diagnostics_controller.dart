@@ -1,5 +1,7 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../../core/services/internet_diagnostics_service.dart';
+import '../../core/services/cdn_ips.dart';
 
 /// Current state status of the diagnostic engine
 enum DiagnosticEngineStatus { idle, running, completed }
@@ -34,6 +36,10 @@ class InternetDiagnosticsController extends ChangeNotifier {
   List<WebsiteReachabilityResult> _websiteResults = [];
   bool _isScanningWebsites = false;
 
+  // CDN Reachability State
+  List<WebsiteReachabilityResult> _cdnResults = [];
+  bool _isScanningCdns = false;
+
   // TLS / HTTPS Analysis State
   bool _isScanningTlsTargets = false;
 
@@ -52,6 +58,40 @@ class InternetDiagnosticsController extends ChangeNotifier {
     {'name': 'ChatGPT', 'domain': 'chatgpt.com'},
     {'name': 'Claude', 'domain': 'claude.ai'},
     {'name': 'Gemini', 'domain': 'gemini.google.com'},
+  ];
+
+  // List of CDN targets to verify
+  static const List<Map<String, dynamic>> targetCdns = [
+    {
+      'name': 'Cloudflare',
+      'domain': 'cloudflare.com',
+      'ips': cloudflareIps,
+    },
+    {
+      'name': 'Akamai',
+      'domain': 'akamai.com',
+      'ips': akamaiIps,
+    },
+    {
+      'name': 'Fastly',
+      'domain': 'fastly.com',
+      'ips': fastlyIps,
+    },
+    {
+      'name': 'AWS CloudFront',
+      'domain': 'aws.amazon.com',
+      'ips': cloudfrontIps,
+    },
+    {
+      'name': 'Azure CDN',
+      'domain': 'azure.microsoft.com',
+      'ips': azureIps,
+    },
+    {
+      'name': 'Google CDN',
+      'domain': 'cloud.google.com',
+      'ips': googleIps,
+    },
   ];
 
   // List of social media targets to verify
@@ -93,7 +133,7 @@ class InternetDiagnosticsController extends ChangeNotifier {
 
   // Track progress
   int _completedTestsCount = 0;
-  static const int totalTestsCount = 10; // 10 progressive sequence tasks
+  static const int totalTestsCount = 11; // 11 progressive sequence tasks
 
   // Getters
   DiagnosticEngineStatus get engineStatus => _engineStatus;
@@ -120,6 +160,9 @@ class InternetDiagnosticsController extends ChangeNotifier {
   List<WebsiteReachabilityResult> get websiteResults => _websiteResults;
   bool get isScanningWebsites => _isScanningWebsites;
   bool get isScanningTlsTargets => _isScanningTlsTargets;
+
+  List<WebsiteReachabilityResult> get cdnResults => _cdnResults;
+  bool get isScanningCdns => _isScanningCdns;
 
   List<SocialMediaResult> get socialMediaResults => _socialMediaResults;
   bool get isScanningSocialMedia => _isScanningSocialMedia;
@@ -151,6 +194,37 @@ class InternetDiagnosticsController extends ChangeNotifier {
 
   int get averageWebsiteLatencyMs {
     final latencies = _websiteResults
+        .where(
+          (w) =>
+              w.latencyMs != null && w.status == ReachabilityStatus.reachable,
+        )
+        .map((w) => w.latencyMs!)
+        .toList();
+    if (latencies.isEmpty) return 0;
+    final total = latencies.reduce((a, b) => a + b);
+    return (total / latencies.length).round();
+  }
+
+  // CDN reachability summary statistics
+  int get reachableCdnsCount => _cdnResults
+      .where((w) => w.status == ReachabilityStatus.reachable)
+      .length;
+
+  int get blockedCdnsCount => _cdnResults
+      .where((w) => w.status == ReachabilityStatus.blocked)
+      .length;
+
+  int get failedCdnsCount => _cdnResults
+      .where(
+        (w) =>
+            w.status == ReachabilityStatus.dnsFailure ||
+            w.status == ReachabilityStatus.tlsFailure ||
+            w.status == ReachabilityStatus.timeout,
+      )
+      .length;
+
+  int get averageCdnLatencyMs {
+    final latencies = _cdnResults
         .where(
           (w) =>
               w.latencyMs != null && w.status == ReachabilityStatus.reachable,
@@ -227,6 +301,8 @@ class InternetDiagnosticsController extends ChangeNotifier {
     _websiteResults = [];
     _isScanningWebsites = false;
     _isScanningTlsTargets = false;
+    _cdnResults = [];
+    _isScanningCdns = false;
     _socialMediaResults = [];
     _isScanningSocialMedia = false;
 
@@ -332,6 +408,58 @@ class InternetDiagnosticsController extends ChangeNotifier {
     _isScanningWebsites = false;
     notifyListeners();
 
+    // 10. CDN Reachability Scan Step
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    _isScanningCdns = true;
+    _completedTestsCount++;
+    notifyListeners();
+
+    for (final target in targetCdns) {
+      final name = target['name']!;
+      final domain = target['domain']!;
+      final List<String> ips = target['ips'] as List<String>;
+
+      // Pick a random list of 50 IPs from each CDN
+      final random = Random();
+      final List<String> shuffledIps = List<String>.from(ips)..shuffle(random);
+      final List<String> selectedIps = shuffledIps.take(50).toList();
+
+      final scanResult = await InternetDiagnosticsService.scanCdnIps(
+        selectedIps,
+        maxConcurrency: 50,
+        timeout: const Duration(milliseconds: 500),
+      );
+
+      final isReachable = scanResult.reachable > 0;
+      final accessibilityPercent = (scanResult.accessibilityRate * 100).toStringAsFixed(1);
+      
+      final detailsText = 'Edge IP Range Scan Results (Tested 50 Random IPs):\n'
+          'Total tested random IPs: ${scanResult.totalTested}\n'
+          'Reachable edge IPs: ${scanResult.reachable}\n'
+          'Blocked/Offline IPs: ${scanResult.totalTested - scanResult.reachable}\n'
+          'CDN Accessibility: $accessibilityPercent%\n'
+          'Average Handshake Latency: ${scanResult.averageLatencyMs}ms\n\n'
+          'Note: This test scanned 50 randomly selected IPs from the CDN\'s public ranges to determine edge network accessibility and performance.';
+
+      final result = WebsiteReachabilityResult(
+        name: name,
+        domain: domain,
+        status: isReachable ? ReachabilityStatus.reachable : ReachabilityStatus.blocked,
+        latencyMs: scanResult.averageLatencyMs,
+        errorDetails: detailsText,
+        statusCode: isReachable ? 200 : null,
+      );
+
+      _cdnResults.add(result);
+      notifyListeners();
+
+      // Subtle stagger delay between sequential checks to render scanning effect
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    }
+
+    _isScanningCdns = false;
+    notifyListeners();
+
     // 11. Social Media Accessibility Scan Step
     await Future<void>.delayed(const Duration(milliseconds: 400));
     _isScanningSocialMedia = true;
@@ -369,6 +497,7 @@ class InternetDiagnosticsController extends ChangeNotifier {
         _domesticIpSuccess ||
         _internationalIpSuccess ||
         _websiteResults.any((w) => w.status == ReachabilityStatus.reachable) ||
+        _cdnResults.any((c) => c.status == ReachabilityStatus.reachable) ||
         _socialMediaResults.any(
           (s) =>
               s.status == SocialMediaStatus.accessible ||
@@ -406,6 +535,8 @@ class InternetDiagnosticsController extends ChangeNotifier {
     _websiteResults = [];
     _isScanningWebsites = false;
     _isScanningTlsTargets = false;
+    _cdnResults = [];
+    _isScanningCdns = false;
     _socialMediaResults = [];
     _isScanningSocialMedia = false;
 
